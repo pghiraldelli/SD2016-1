@@ -11,6 +11,60 @@ struct TArgs {
   TSocket cliSock;   /* socket descriptor for client */
 };
 
+int numero_clientes = 0;
+
+void calcula(char *str){
+  int num1, num2;
+  char *operador;
+  char *token = strtok(NULL, " ");
+  
+  num1 = atoi(token);
+
+  token = strtok(NULL, " ");
+  operador = token;
+
+  token = strtok(NULL, " ");
+  num2 = atoi(token);
+
+  if(strcmp(operador, "+") == 0){
+    sprintf(str, "%d\n", num1 + num2);
+  }
+  else if(strcmp(operador, "-") == 0){
+    sprintf(str, "%d\n", num1 - num2);
+  }
+  else{
+    sprintf(str, "Operacao mal formada!\n");
+  }
+}
+
+void verificaUsuariosOnline(char *str){
+    sprintf(str, "Numero de clientes online: %d\n", numero_clientes);
+}
+
+void imprime(char *str){
+    char *token = strtok(NULL, "\n");
+    sprintf(str, "%s\n", token);
+}
+
+
+void executa(char *str){
+  
+  char *ops = strtok(str, " ");
+
+  if (strcmp(ops,"calcula")==0){
+    calcula(str);
+  }
+  else if (strcmp(ops,"imprime")==0){
+    imprime(str);
+  }
+  else if (strcmp(ops,"online\n")==0){
+    verificaUsuariosOnline(str);
+  }
+  else{
+    sprintf(str, "Comando nao encontrado\n");
+  }
+}
+
 /* Handle client request */
 void * HandleRequest(void *args) {
   char str[BUFSIZE];
@@ -24,7 +78,10 @@ void * HandleRequest(void *args) {
     /* Receive the request */
     if (ReadLine(cliSock, str, BUFSIZE-1) < 0) 
       { ExitWithError("ReadLine() failed"); 
-    } else printf("%s",str);  
+    } 
+    else {
+        executa(str);
+    }  
     if (strncmp(str, "quit", 4) == 0) break; 
  
     /* Send the response */
@@ -94,6 +151,7 @@ int main(int argc, char *argv[]) {
         WriteError("pthread_create() failed"); 
         break;
       }
+      numero_clientes++;
     }
   }
   

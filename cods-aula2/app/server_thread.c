@@ -13,15 +13,15 @@ struct TArgs {
 void calcula(char *str){
 	int num1, num2;
 	char *operador;
-	char *vetor = strtok(NULL, " ");
+	char *token = strtok(NULL, " ");
 	
-	num1 = atoi(vetor);
+	num1 = atoi(token);
 
-	vetor = strtok(NULL, " ");
-	operador = vetor;
+	token = strtok(NULL, " ");
+	operador = token;
 
-	vetor = strtok(NULL, " ");
-	num2 = atoi(vetor);
+	token = strtok(NULL, " ");
+	num2 = atoi(token);
 
 	if(strcmp(operador, "+") == 0){
 		sprintf(str, "%d\n", num1 + num2);
