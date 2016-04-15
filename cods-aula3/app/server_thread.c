@@ -1,6 +1,6 @@
-// A multithread echo server 
+// A multithread echo server
 
-#include "mysocket.h"  
+#include "mysocket.h"
 #include <pthread.h>
 
 #define BUFSIZE 100
@@ -17,7 +17,7 @@ void calcula(char *str){
   int num1, num2;
   char *operador;
   char *token = strtok(NULL, " ");
-  
+
   num1 = atoi(token);
 
   token = strtok(NULL, " ");
@@ -47,17 +47,20 @@ void imprime(char *str){
 }
 
 
-void executa(char *str){
-  
+void executa(int clienteID, char *str){
+
   char *ops = strtok(str, " ");
 
   if (strcmp(ops,"calcula")==0){
+    printf("Cliente %d executando comando %s\n", clienteID, ops);
     calcula(str);
   }
   else if (strcmp(ops,"imprime")==0){
+    printf("Cliente %d executando comando %s\n", clienteID, ops);
     imprime(str);
   }
   else if (strcmp(ops,"online\n")==0){
+    printf("Cliente %d executando comando %s\n", clienteID, ops);
     verificaUsuariosOnline(str);
   }
   else{
@@ -76,17 +79,17 @@ void * HandleRequest(void *args) {
 
   for(;;) {
     /* Receive the request */
-    if (ReadLine(cliSock, str, BUFSIZE-1) < 0) 
-      { ExitWithError("ReadLine() failed"); 
-    } 
+    if (ReadLine(cliSock, str, BUFSIZE-1) < 0)
+      { ExitWithError("ReadLine() failed");
+    }
     else {
-        executa(str);
-    }  
-    if (strncmp(str, "quit", 4) == 0) break; 
- 
+        executa(cliSock, str);
+    }
+    if (strncmp(str, "quit", 4) == 0) break;
+
     /* Send the response */
-    if (WriteN(cliSock, str, strlen(str)) <= 0)  
-      { ExitWithError("WriteN() failed"); }  
+    if (WriteN(cliSock, str, strlen(str)) <= 0)
+      { ExitWithError("WriteN() failed"); }
   }
   close(cliSock);
   pthread_exit(NULL);
@@ -103,12 +106,12 @@ int main(int argc, char *argv[]) {
 
   if (argc == 1) { ExitWithError("Usage: server <local port>"); }
 
-  /* Create a passive-mode listener endpoint */  
+  /* Create a passive-mode listener endpoint */
   srvSock = CreateServer(atoi(argv[1]));
 
   printf("Server read!\n");
   /* Run forever */
-  for (;;) { 
+  for (;;) {
     /* Initialize the file descriptor set */
     FD_ZERO(&set);
     /* Include stdin into the file descriptor set */
@@ -119,7 +122,7 @@ int main(int argc, char *argv[]) {
     /* Select returns 1 if input available, -1 if error */
     ret = select (FD_SETSIZE, &set, NULL, NULL, NULL);
     if (ret<0) {
-       WriteError("select() failed"); 
+       WriteError("select() failed");
        break;
     }
 
@@ -134,30 +137,30 @@ int main(int argc, char *argv[]) {
 
     /* Read from srvSock */
     if (FD_ISSET(srvSock, &set)) {
-      if (tid == NTHREADS) { 
-        WriteError("number of threads is over"); 
-        break; 
+      if (tid == NTHREADS) {
+        WriteError("number of threads is over");
+        break;
       }
-      
+
       /* Spawn off separate thread for each client */
       cliSock = AcceptConnection(srvSock);
 
       /* Create separate memory for client argument */
-      if ((args = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL) { 
-        WriteError("malloc() failed"); 
+      if ((args = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL) {
+        WriteError("malloc() failed");
         break;
       }
       args->cliSock = cliSock;
 
       /* Create a new thread to handle the client requests */
-      if (pthread_create(&threads[tid++], NULL, HandleRequest, (void *) args)) { 
-        WriteError("pthread_create() failed"); 
+      if (pthread_create(&threads[tid++], NULL, HandleRequest, (void *) args)) {
+        WriteError("pthread_create() failed");
         break;
       }
       numero_clientes++;
     }
   }
-  
+
   printf("Server will wait for the active threads and terminate!\n");
   /* Wait for all threads to terminate */
   for(i=0; i<tid; i++) {
