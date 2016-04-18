@@ -45,6 +45,13 @@ int main(int argc, char *argv[]) {
   int ret, i;
   char str[BUFSIZE];
 
+  Usuario user;
+  user.nome = "Matheus";
+  user.IP = "127.0.0.1";
+  user.porta = 2003;
+
+  printf("%s %s %d", user.nome, user.IP, user.porta);
+
   if (argc == 1) { ExitWithError("Usage: server <local port>"); }
 
   /* Create a passive-mode listener endpoint */  

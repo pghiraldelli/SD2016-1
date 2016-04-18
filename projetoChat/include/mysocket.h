@@ -47,3 +47,12 @@ int ReadLine(TSocket sock, char *ptr, int maxLen);
 
 /* Get local name */
 char *GetLocalName();  
+
+/* User Struct */
+typedef struct Usuarios
+{
+  int usuarioID;
+  char *IP;
+  char *nome;
+  unsigned short porta;
+} Usuario;
