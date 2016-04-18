@@ -1,4 +1,5 @@
-// an echo client 
+// Cliente de Usuarios
+
 #include "mysocket.h"  
 
 int main(int argc, char *argv[]) {
