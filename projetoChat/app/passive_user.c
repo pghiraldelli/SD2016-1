@@ -1,98 +1,92 @@
 #include "mysocket.h"
 
-/* Structure of arguments to pass to client thread */
-struct TArgs {
-    TSocket cliSock;   /* socket descriptor for client */
-};
-
-TSocket srvSock, cliSock;        /* server and client sockets */
+TSocket srvSock, cliSock;
 char *IP;
 unsigned short porta;
 
-
-/* Handle client request */
-int HandleRequest(void *args) {
-    char str[100];
-    TSocket cliSock;
-
-    /* Extract socket file descriptor from argument */
-    cliSock = ((struct TArgs *) args) -> cliSock;
-    free(args);  /* deallocate memory for argument */
-
-    /* Receive the request */
-    if (ReadLine(cliSock, str, 99) < 0){
-        ExitWithError("ReadLine() failed");
-    } else printf("%s",str);
-
-    /*... do something ... */
-
-    /* Send the response */
-    if (WriteN(cliSock, "ack\n", 4) <= 0){
-        ExitWithError("WriteN() failed");
-    }
-
-    close(cliSock);
-    return 1;
-}
-
-
 void criaSocket(){
-    porta = atoi(argv[2]);
-    struct TArgs *args;              /* argument structure for thread */
-
-    if (argc == 1) {
-        ExitWithError("Usage: server <local port>");
-    }
-
-    /* Create a passive-mode listener endpoint */
+    porta = 2017;
     srvSock = CreateServer(porta);
 }
 
 void registrar(){
-    IP = argv[1];
+    porta = 2016;
+    TSocket servSock;
+    servSock = ConnectToServer(IP,porta);
+    printf("Entre com um nome de usuario: \n");
+    char nome[20];
+    char str[22];
+    scanf("%s",nome);
+    sprintf(str, "1 %s\n", nome);
+    int n = strlen(str);
+    str[n] = '\n';
+    if (WriteN(servSock, str, ++n) <= 0)
+    { ExitWithError("WriteN() failed"); }
 
-
+    // DEPOIS FAZER UM SELECT PRA SE O CARA QUISER TERMINAR ANTES DE COMECAR
 }
 
-void esperaConexao(){
-    for (;;) { /* run forever */
-        cliSock = AcceptConnection(srvSock);
+void conversa(TSocket cliSock) {
+    char str[100];
+    int n,ret;
+    fd_set set;
+    for(;;) {
+        /* Initialize the file descriptor set */
+        FD_ZERO(&set);
+        /* Include stdin into the file descriptor set */
+        FD_SET(STDIN_FILENO, &set);
+        /* Include srvSock into the file descriptor set */
+        FD_SET(cliSock, &set);
 
-        /* Create a memory space for client argument */
-        if ((args = (struct TArgs *) malloc(sizeof(struct TArgs))) == NULL)
-        { ExitWithError("malloc() failed"); }
-        args->cliSock = cliSock;
+        /* Select returns 1 if input available, -1 if error */
+        ret = select (FD_SETSIZE, &set, NULL, NULL, NULL);
+        if (ret<0) {
+            WriteError("select() failed");
+            break;
+        }
 
-        /* Handle the client request */
-        if (HandleRequest((void *) args) != 1)
-        { ExitWithError("HandleRequest() failed"); }
+        /* Read from stdin */
+        if (FD_ISSET(STDIN_FILENO, &set)) {
+            scanf("%99[^\n]%*c", str);
+            if (strncmp(str, "FIM", 3) == 0) {
+                close(cliSock);
+                break;
+            }
+            else{
+                if (WriteN(cliSock, str, ++n) <= 0)
+                  { ExitWithError("WriteN() failed"); }
+                if (strncmp(str, "quit", 4) == 0) break;
+            }
+        }
+
+        /* Read from srvSock */
+        if (FD_ISSET(cliSock, &set)) {
+            if (ReadLine(cliSock, str, 99) < 0)
+            { ExitWithError("ReadLine() failed");}
+            else{
+                if (strncmp(str, "FIM", 3) == 0) {
+                    close(cliSock);
+                    break;
+                }
+                else{
+                    printf("%s",str);
+                }
+            }
+        }
     }
 }
 
-void escreveMSG() {
-    char str[100];
-    int n;
-    for(;;) {
-        /* Write msg */
-        scanf("%99[^\n]%*c",str);
-        n = strlen(str);
-        str[n] = '\n';
-        if (WriteN(sock, str, ++n) <= 0){
-            ExitWithError("WriteN() failed");
-        }
-        if (strncmp(str, "quit", 4) == 0) break;
-
-        /* Receive the response */
-        if (ReadLine(sock, str, 99) < 0) {
-             ExitWithError("ReadLine() failed");
-        }
-        else printf("%s",str);
+void esperaConexao(){
+    for (;;) {
+        cliSock = AcceptConnection(srvSock);
+        conversa(cliSock);
     }
 }
 
 int main(int argc, char *argv[]) {
+    IP = argv[1];
     criaSocket();
     registrar();
     esperaConexao();
-
+    return 0;
 }
